@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<title>Upravljanje rezervacijama</title>
+<style>
+body {font-family: Arial, sans-serif; padding: 20px;}
+h1 {margin-bottom:20px;}
+table {border-collapse: collapse; width: 100%;}
+th, td {border: 1px solid #444; padding: 8px; text-align: center;}
+tr:nth-child(even){background:#f2f2f2;}
+button {padding: 5px 10px; margin: 2px;}
+select {padding: 5px;}
+#filter {margin-bottom: 15px;}
+
+#loginBox {
+  border: 1px solid #aaa;
+  width: 300px;
+  padding: 20px;
+  margin: 50px auto;
+  border-radius: 5px;
+  text-align: center;
+}
+input {padding: 8px; width: 90%; margin: 5px 0;}
+#adminPanel {display: none;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginBox">
+  <h2>Admin prijava</h2>
+  <input id="username" type="text" placeholder="Korisničko ime">
+  <input id="password" type="password" placeholder="Lozinka">
+  <button onclick="login()">Prijava</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+<h1>Admin panel – Rezervacije</h1>
+
+<label for="filter">Filtriraj po statusu:</label>
+<select id="filter">
+  <option value="sve">Sve</option>
+  <option value="na čekanju">Na čekanju</option>
+  <option value="prihvaćeno">Prihvaćene</option>
+  <option value="odbijeno">Odbijene</option>
+</select>
+
+<table id="reservationsTable">
+  <tr>
+    <th>Dolazak</th>
+    <th>Odlazak</th>
+    <th>Noćenja</th>
+    <th>Cijena (€)</th>
+    <th>Status</th>
+    <th>Akcije</th>
+  </tr>
+</table>
+
+<button onclick="window.location.href='index.html'">⬅ Povratak</button>
+</div>
+
+<script>
+// ---------------- LOGIN ----------------
+const VALID_USER = "admin";
+const VALID_PASS = "12345";
+
+function login(){
+  const u = document.getElementById("username").value;
+  const p = document.getElementById("password").value;
+
+  if(u === VALID_USER && p === VALID_PASS){
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+  } else {
+    alert("Pogrešno korisničko ime ili lozinka");
+  }
+}
+
+// --------------- REZERVACIJE ---------------
+const STORAGE_KEY = "villa_padova_reservations";
+let reservations = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+const table = document.getElementById("reservationsTable");
+const filterSelect = document.getElementById("filter");
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+}
+
+function render(){
+  const rows = table.querySelectorAll("tr:not(:first-child)");
+  rows.forEach(r => r.remove());
+
+  const filter = filterSelect.value;
+  reservations.forEach((r, i) => {
+    if(filter !== "sve" && r.status !== filter) return;
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${r.start}</td>
+      <td>${r.end}</td>
+      <td>${r.nights}</td>
+      <td>${r.price.toFixed(2)}</td>
+      <td>
+        <select onchange="updateStatus(${i}, this.value)">
+          <option ${r.status==='na čekanju'?'selected':''}>na čekanju</option>
+          <option ${r.status==='prihvaćeno'?'selected':''}>prihvaćeno</option>
+          <option ${r.status==='odbijeno'?'selected':''}>odbijeno</option>
+        </select>
+      </td>
+      <td><button onclick="deleteReservation(${i})">🗑 Obriši</button></td>
+    `;
+    table.appendChild(row);
+  });
+}
+
+function deleteReservation(index){
+  if(confirm("Sigurno želite obrisati rezervaciju?")){
+    reservations.splice(index, 1);
+    save();
+    render();
+  }
+}
+
+function updateStatus(index, newStatus){
+  reservations[index].status = newStatus;
+  save();
+  render();
+}
+
+filterSelect.onchange = render;
+render();
+</script>
+
+</body>
+</html>
